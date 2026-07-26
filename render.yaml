@@ -15,10 +15,14 @@ services:
     runtime: node
     plan: free
     region: oregon
+    # Sin `corepack enable`: Render trae pnpm en /usr/bin/pnpm y corepack intenta
+    # reemplazarlo, pero ese directorio es de sólo lectura (EROFS). Se invoca la
+    # versión exacta con npx, que se descarga a la caché del usuario.
+    #
     # Las migraciones van al final del build porque preDeployCommand no está
     # disponible en el plan gratuito. migrate deploy es idempotente: si no hay
     # migraciones pendientes, no hace nada.
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build && pnpm db:migrate
+    buildCommand: npx --yes pnpm@10.33.4 install --frozen-lockfile && npx --yes pnpm@10.33.4 build && npx --yes pnpm@10.33.4 db:migrate
     startCommand: node dist/src/main.js
     healthCheckPath: /health
     envVars:

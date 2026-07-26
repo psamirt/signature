@@ -73,8 +73,26 @@ requisito de Meta. Un dominio propio es sólo cosmético.
 
 ### Despliegue en Render
 
-El repo ya trae [`render.yaml`](render.yaml). En Render: **New → Blueprint**,
-apunta al repositorio y crea el servicio junto con la base de datos.
+El repo ya trae [`render.yaml`](render.yaml). En Render: **New → Blueprint** y
+apunta al repositorio.
+
+Tres detalles del blueprint que no son obvios y que hacen fallar el build:
+
+- **Sin `rootDir`.** La raíz de este repositorio de Git es la carpeta `api/`, así
+  que en GitHub el `package.json` ya está en la raíz. Poner `rootDir: api`
+  falla con "directory not found".
+- **Sin `corepack enable`.** Render trae `pnpm` en `/usr/bin/pnpm` y corepack
+  intenta reemplazarlo, pero ese directorio es de sólo lectura: el build muere
+  con `EROFS: read-only file system, unlink '/usr/bin/pnpm'`. Se invoca la
+  versión exacta de pnpm con `npx --yes pnpm@10.33.4`, que se descarga a la caché
+  del usuario.
+- **Sin `preDeployCommand`.** No está disponible en el plan gratuito
+  (`pre-deploy command is not supported for free tier services`), y mientras el
+  archivo lo incluya Render no deja crear el servicio. Por eso
+  `prisma migrate deploy` va al final del `buildCommand`.
+
+La versión de Node está fijada en [`.node-version`](.node-version) a la 22.16.0.
+Sin ese archivo Render usa la 24, que no es la que se probó.
 
 Los secretos están marcados `sync: false` a propósito: se llenan a mano en
 *Environment* del panel de Render, no en el archivo. Rellena
