@@ -21,11 +21,26 @@ export class WhatsappService {
     private readonly conversations: ConversationsService,
   ) {}
 
+  /**
+   * Diagnóstico sin exponer secretos: dice qué variables faltan por nombre.
+   * Útil en Render, donde no puedes leer el .env desde fuera.
+   */
   getHealth() {
+    const missing = Object.entries({
+      WHATSAPP_PHONE_NUMBER_ID: whatsappConfig.phoneNumberId,
+      WHATSAPP_BUSINESS_ACCOUNT_ID: whatsappConfig.businessAccountId,
+      WHATSAPP_ACCESS_TOKEN: whatsappConfig.accessToken,
+      WHATSAPP_VERIFY_TOKEN: whatsappConfig.verifyToken,
+      WHATSAPP_APP_SECRET: whatsappConfig.appSecret,
+    })
+      .filter(([, value]) => !value)
+      .map(([key]) => key);
+
     return {
-      status: 'ok',
+      status: missing.length ? 'incompleto' : 'ok',
       service: 'whatsapp-webhook',
-      configured: whatsappConfig.isConfigured,
+      ready: missing.length === 0,
+      missing,
       graphVersion: whatsappConfig.graphVersion,
       phoneNumberId: whatsappConfig.phoneNumberId
         ? `…${whatsappConfig.phoneNumberId.slice(-4)}`

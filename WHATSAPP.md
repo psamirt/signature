@@ -100,11 +100,16 @@ Los secretos están marcados `sync: false` a propósito: se llenan a mano en
 `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_BUSINESS_ACCOUNT_ID` y
 `LEGAL_CONTACT_EMAIL`.
 
-Con el servicio arriba, tus URLs quedan:
+Con el servicio arriba, las URLs de este despliegue son:
 
-- Webhook: `https://TU-APP.onrender.com/whatsapp/webhook`
-- Política de privacidad: `https://TU-APP.onrender.com/privacy`
-- Diagnóstico: `https://TU-APP.onrender.com/whatsapp/health`
+| Para | URL |
+|---|---|
+| Webhook (panel de Meta) | `https://signature-api-x65k.onrender.com/whatsapp/webhook` |
+| Política de privacidad (Configuración → Básica) | `https://signature-api-x65k.onrender.com/privacy` |
+| Diagnóstico | `https://signature-api-x65k.onrender.com/whatsapp/health` |
+
+`/whatsapp/health` lista por nombre las variables que faltan, sin exponer su
+valor. Si `ready` es `false`, ahí está la respuesta de por qué algo no funciona.
 
 **Advertencia del plan gratuito:** Render duerme el servicio tras ~15 min sin
 tráfico y despertarlo tarda cerca de un minuto. Si un cliente escribe cuando
