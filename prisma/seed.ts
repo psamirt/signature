@@ -3,7 +3,69 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+/**
+ * Comprueba la cadena de conexión antes de intentar nada. Es fácil que el shell
+ * la mutile: las cadenas de Neon llevan `&channel_binding=require`, y en
+ * PowerShell `&` parte el comando si no se usan comillas SIMPLES.
+ */
+function resolveConnectionString(): string {
+  const raw = process.env.DATABASE_URL;
+
+  if (!raw) {
+    console.error(
+      'DATABASE_URL no está definida.\n\n' +
+        "PowerShell:  $env:DATABASE_URL='postgresql://...'; pnpm db:seed\n" +
+        "Bash:        DATABASE_URL='postgresql://...' pnpm db:seed\n\n" +
+        'Usa comillas SIMPLES: la cadena lleva & y ? que el shell interpreta.',
+    );
+    process.exit(1);
+  }
+
+  let host: string;
+  try {
+    host = new URL(raw).hostname;
+  } catch {
+    console.error(
+      `DATABASE_URL no es una URL válida: "${raw.slice(0, 40)}…"\n` +
+        'Lo más probable es que el shell la haya cortado. Usa comillas simples.',
+    );
+    process.exit(1);
+  }
+
+  // Un host sin puntos y que no sea localhost delata una cadena truncada,
+  // p. ej. "base" cuando el shell cortó en el primer &.
+  if (!host.includes('.') && host !== 'localhost') {
+    console.error(
+      `El host de la conexión es "${host}", lo cual no parece correcto.\n` +
+        'La cadena llegó cortada: envuélvela en comillas SIMPLES.',
+    );
+    process.exit(1);
+  }
+
+  // Los ejemplos de la documentación llevan hosts de relleno. Es fácil pegar la
+  // cadena de muestra y cambiar sólo el usuario y la clave.
+  if (/ep-xxx|tu-app|usuario:clave|ejemplo\./i.test(raw)) {
+    console.error(
+      `El host "${host}" es un placeholder de la documentación, no tu servidor real.\n\n` +
+        'Copia la cadena completa desde el panel de Neon (Connection string) o\n' +
+        'desde Render > Environment > DATABASE_URL.',
+    );
+    process.exit(1);
+  }
+
+  console.log(`Sembrando en: ${host}\n`);
+  return raw;
+}
+
+const connectionString = resolveConnectionString();
+
+const pool = new Pool({
+  connectionString,
+  ssl: /sslmode=(require|verify-ca|verify-full)/.test(connectionString)
+    ? { rejectUnauthorized: true }
+    : undefined,
+  connectionTimeoutMillis: 15_000,
+});
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 const PRODUCTS = [

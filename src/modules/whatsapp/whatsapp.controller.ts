@@ -14,6 +14,7 @@ import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { WhatsappService } from './whatsapp.service';
 import { WhatsappApiService } from './whatsapp-api.service';
+import { ConversationsService } from '../conversations/conversations.service';
 import type { WhatsappWebhookPayload } from './dto/webhook.types';
 import {
   RegisterPhoneNumberDto,
@@ -27,6 +28,7 @@ export class WhatsappController {
   constructor(
     private readonly whatsappService: WhatsappService,
     private readonly api: WhatsappApiService,
+    private readonly conversations: ConversationsService,
   ) {}
 
   @Get('health')
@@ -83,6 +85,15 @@ export class WhatsappController {
   @Get('status')
   status() {
     return this.api.getPhoneNumberStatus();
+  }
+
+  /**
+   * Contadores de tráfico, sin datos de clientes. Si `messagesIn` es 0, ningún
+   * webhook llegó nunca: el problema está en el panel de Meta, no en el código.
+   */
+  @Get('traffic')
+  traffic() {
+    return this.conversations.getStats();
   }
 
   /**

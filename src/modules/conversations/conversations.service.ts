@@ -111,6 +111,46 @@ export class ConversationsService {
     });
   }
 
+  /**
+   * Contadores para diagnóstico, sin exponer datos de clientes. Responden a la
+   * pregunta clave cuando el bot no contesta: ¿llegó algún webhook a esta API?
+   */
+  async getStats(): Promise<{
+    customers: number;
+    conversations: number;
+    messagesIn: number;
+    messagesOut: number;
+    lastInboundAt: Date | null;
+    lastOutboundAt: Date | null;
+  }> {
+    const [customers, conversations, messagesIn, messagesOut, lastIn, lastOut] =
+      await Promise.all([
+        this.prisma.customer.count(),
+        this.prisma.conversation.count(),
+        this.prisma.message.count({ where: { role: 'user' } }),
+        this.prisma.message.count({ where: { role: 'assistant' } }),
+        this.prisma.message.findFirst({
+          where: { role: 'user' },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+        }),
+        this.prisma.message.findFirst({
+          where: { role: 'assistant' },
+          orderBy: { createdAt: 'desc' },
+          select: { createdAt: true },
+        }),
+      ]);
+
+    return {
+      customers,
+      conversations,
+      messagesIn,
+      messagesOut,
+      lastInboundAt: lastIn?.createdAt ?? null,
+      lastOutboundAt: lastOut?.createdAt ?? null,
+    };
+  }
+
   static normalizePhone(waId: string): string {
     const digits = waId.replace(/\D/g, '');
     return `+${digits}`;
