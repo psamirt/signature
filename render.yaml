@@ -1,6 +1,11 @@
 # Blueprint de Render. En Render: New > Blueprint > apunta al repo.
 # Da un dominio HTTPS estable, que es lo que Meta necesita para el webhook
 # y para la URL de política de privacidad.
+#
+# La base de datos NO se crea aquí a propósito: el Postgres gratuito de Render
+# caduca 30 días después de crearse y luego se elimina con todos los datos.
+# Usa Neon (gratuito y sin caducidad) y pega su cadena de conexión en
+# DATABASE_URL desde el panel de Render. Ver WHATSAPP.md > "Base de datos".
 services:
   - type: web
     name: signature-api
@@ -9,7 +14,7 @@ services:
     region: oregon
     rootDir: api
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-    # migrate deploy en el arranque: aplica migraciones pendientes sin pedir nada.
+    # migrate deploy aplica migraciones pendientes sin pedir confirmación.
     preDeployCommand: pnpm db:migrate
     startCommand: node dist/src/main.js
     healthCheckPath: /health
@@ -17,12 +22,13 @@ services:
       - key: NODE_ENV
         value: production
       # Render inyecta PORT; appConfig ya lo lee.
+
+      # Cadena de conexión de Neon, con ?sslmode=require al final.
       - key: DATABASE_URL
-        fromDatabase:
-          name: signature-db
-          property: connectionString
-      # Los secretos NO van aquí: se llenan en el panel de Render
-      # (Environment), para no comitearlos.
+        sync: false
+
+      # Los secretos van con sync: false para no comitearlos: se llenan en
+      # el panel de Render (Environment).
       - key: WHATSAPP_PHONE_NUMBER_ID
         sync: false
       - key: WHATSAPP_BUSINESS_ACCOUNT_ID
@@ -41,9 +47,3 @@ services:
         value: Aura Signature
       - key: LEGAL_CONTACT_EMAIL
         sync: false
-
-databases:
-  - name: signature-db
-    plan: free
-    region: oregon
-    databaseName: signature_db

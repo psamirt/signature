@@ -40,10 +40,14 @@ Copia `.env.example` a `.env` y llena:
 
 ### 2. Base de datos
 
+En local, con tu Postgres corriendo:
+
 ```bash
 pnpm db:migrate   # aplica migraciones
 pnpm db:seed      # 4 perfumes de ejemplo, uno agotado a propósito
 ```
+
+Para producción, ver "Dónde alojar la base de datos" más abajo.
 
 ### 3. Levantar y exponer
 
@@ -87,9 +91,45 @@ Con el servicio arriba, tus URLs quedan:
 **Advertencia del plan gratuito:** Render duerme el servicio tras ~15 min sin
 tráfico y despertarlo tarda cerca de un minuto. Si un cliente escribe cuando
 está dormido, ese primer webhook puede fallar; Meta reintenta, así que el
-mensaje suele llegar, pero con retraso. Para uso real conviene el plan de pago o
-un ping periódico a `/health`. La base de datos gratuita también caduca, así que
-respáldala o contrátala antes de tener datos que te importen.
+mensaje suele llegar, pero con retraso. El plan gratuito también da 750 horas de
+instancia al mes por espacio de trabajo. Para uso real conviene el plan de pago o
+un ping periódico a `/health`.
+
+### Dónde alojar la base de datos
+
+El `render.yaml` **no** crea la base de datos, y es deliberado: el Postgres
+gratuito de Render **caduca 30 días después de crearse**, da 14 días de gracia y
+después Render lo elimina con todos los datos dentro. Para un bot que acumula
+conversaciones de clientes, eso es una pérdida de datos programada.
+
+La recomendación es separar las dos cosas: **API en Render, base de datos en
+Neon.** El plan gratuito de Neon no caduca (0.5 GB de almacenamiento, 100 horas
+de cómputo al mes). Suspende el cómputo tras ~5 min de inactividad, pero reanuda
+solo en la siguiente consulta, sin intervención manual.
+
+Pasos:
+
+1. Crea un proyecto en [neon.com](https://neon.com) y copia la cadena de
+   conexión. Termina en `?sslmode=require`.
+2. Pégala en `DATABASE_URL` en *Environment* del panel de Render.
+3. El `preDeployCommand` del blueprint corre `prisma migrate deploy` en cada
+   despliegue, así que las tablas se crean solas en el primer deploy.
+4. Para cargar los productos de ejemplo una vez:
+   `DATABASE_URL="<cadena-de-neon>" pnpm db:seed`
+
+[`PrismaService`](src/prisma/prisma.service.ts) activa TLS automáticamente cuando
+la cadena de conexión lleva `sslmode=require`, y en local no, donde no hay TLS.
+El timeout de conexión está en 15 s porque la primera consulta tras la suspensión
+de Neon tarda en despertar la instancia.
+
+Otras opciones válidas, por si prefieres:
+
+| Servicio | Plan gratuito | Ojo con |
+|---|---|---|
+| **Neon** | Sin caducidad, 0.5 GB | 100 h de cómputo al mes |
+| Supabase | Sin caducidad, 500 MB | **Pausa el proyecto tras 1 semana sin actividad** y hay que reactivarlo a mano desde el panel |
+| Render | 1 GB | **Se elimina a los 30 días** |
+| Postgres administrado de pago | — | Desde unos pocos dólares al mes; es lo sensato en cuanto el bot atienda clientes de verdad |
 
 ### 4. Registrar el webhook
 
