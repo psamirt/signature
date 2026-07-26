@@ -1,0 +1,49 @@
+# Blueprint de Render. En Render: New > Blueprint > apunta al repo.
+# Da un dominio HTTPS estable, que es lo que Meta necesita para el webhook
+# y para la URL de política de privacidad.
+services:
+  - type: web
+    name: signature-api
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: api
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    # migrate deploy en el arranque: aplica migraciones pendientes sin pedir nada.
+    preDeployCommand: pnpm db:migrate
+    startCommand: node dist/src/main.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render inyecta PORT; appConfig ya lo lee.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: signature-db
+          property: connectionString
+      # Los secretos NO van aquí: se llenan en el panel de Render
+      # (Environment), para no comitearlos.
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_BUSINESS_ACCOUNT_ID
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: WHATSAPP_GRAPH_VERSION
+        value: v25.0
+      - key: WHATSAPP_VERIFY_SIGNATURE
+        value: 'true'
+      - key: LEGAL_BUSINESS_NAME
+        value: Aura Signature
+      - key: LEGAL_CONTACT_EMAIL
+        sync: false
+
+databases:
+  - name: signature-db
+    plan: free
+    region: oregon
+    databaseName: signature_db
