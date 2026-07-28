@@ -81,42 +81,91 @@ interface SeedProduct {
   brand?: string;
 }
 
+/**
+ * Imagen de relleno de 800x800 con el nombre del producto rotulado.
+ *
+ * A propósito NO se usan URLs de Google Imágenes: las miniaturas de
+ * `gstatic.com` rondan los 200 px (Meta exige mínimo 500x500 y rechaza la
+ * imagen), las URLs caducan, y son fotos de producto de terceros — usarlas en
+ * un catálogo comercial es un problema de derechos y viola las políticas de
+ * comercio de Meta, que exigen que la imagen represente lo que realmente vendes.
+ *
+ * Estas sirven para probar el feed de punta a punta. Sustitúyelas por fotos
+ * tuyas antes de activar anuncios.
+ */
+function placeholderImage(name: string): string {
+  const label = encodeURIComponent(name);
+  return `https://placehold.co/800x800/1a1a1a/f4f1ea.png?text=${label}`;
+}
+
+// Meta pide al menos 5 productos para habilitar los anuncios de catálogo
+// Advantage+; van 6 para tener margen si alguno se desactiva.
 const PRODUCTS: SeedProduct[] = [
   {
     slug: 'noir-intense',
     name: 'Noir Intense',
-    description: 'Eau de parfum ámbar y madera, 100 ml. Proyección alta.',
+    description:
+      'Eau de parfum ámbar y madera, 100 ml. Notas de bergamota, cuero y sándalo. Proyección alta y duración de 8 a 10 horas.',
     price: '289.00',
     category: 'hombre',
     sku: 'SIG-NOI-100',
     stock: 12,
+    imageUrl: placeholderImage('Noir Intense'),
   },
   {
     slug: 'blossom-eau-de-parfum',
     name: 'Blossom',
-    description: 'Floral blanco con notas de jazmín y pera, 50 ml.',
+    description:
+      'Floral blanco con notas de jazmín, pera y almizcle, 50 ml. Fresco y ligero, ideal para uso diario.',
     price: '219.00',
     category: 'mujer',
     sku: 'SIG-BLO-050',
     stock: 7,
+    imageUrl: placeholderImage('Blossom'),
   },
   {
     slug: 'oud-royale',
     name: 'Oud Royale',
-    description: 'Oud, azafrán y rosa. Edición limitada, 75 ml.',
+    description:
+      'Oud, azafrán y rosa de Damasco, 75 ml. Edición limitada de nuestra línea premium, con notas de fondo de ámbar y vainilla.',
     price: '540.00',
     category: 'unisex',
     sku: 'SIG-OUD-075',
     stock: 3,
+    imageUrl: placeholderImage('Oud Royale'),
   },
   {
     slug: 'citrus-fresh',
     name: 'Citrus Fresh',
-    description: 'Bergamota y vetiver, ideal para el día, 100 ml.',
+    description:
+      'Bergamota, limón de Amalfi y vetiver, 100 ml. Cítrico luminoso para el día, con estela discreta.',
     price: '175.00',
     category: 'unisex',
     sku: 'SIG-CIT-100',
     stock: 0,
+    imageUrl: placeholderImage('Citrus Fresh'),
+  },
+  {
+    slug: 'vanille-absolue',
+    name: 'Vanille Absolue',
+    description:
+      'Vainilla de Madagascar, haba tonka y praliné, 50 ml. Gourmand envolvente, especial para las noches frías.',
+    price: '265.00',
+    category: 'mujer',
+    sku: 'SIG-VAN-050',
+    stock: 9,
+    imageUrl: placeholderImage('Vanille Absolue'),
+  },
+  {
+    slug: 'marine-bleu',
+    name: 'Marine Bleu',
+    description:
+      'Acuático con notas de salvia, menta y musgo marino, 100 ml. Limpio y versátil, pensado para la oficina.',
+    price: '198.00',
+    category: 'hombre',
+    sku: 'SIG-MAR-100',
+    stock: 15,
+    imageUrl: placeholderImage('Marine Bleu'),
   },
 ];
 

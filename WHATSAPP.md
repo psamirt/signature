@@ -218,15 +218,29 @@ Campos que exige Meta, y de dónde sale cada uno:
 | `image_link` | `Product.imageUrl` |
 | `brand` | `Product.brand`, o `CATALOG_BRAND` si está vacío |
 
-**Falta subir fotos.** `image_link` es obligatorio (JPEG/PNG, mínimo 500×500 px)
-y ninguno de los productos del seed tiene una. Los productos sin imagen se
-**omiten** del feed a propósito: una fila con un campo obligatorio vacío se
-rechaza entera, y un feed lleno de filas rechazadas es peor que uno corto.
-`/catalog/status` lista exactamente qué falta.
+Los productos sin `imageUrl` se **omiten** del feed a propósito: una fila con un
+campo obligatorio vacío se rechaza entera, y un feed lleno de filas rechazadas es
+peor que uno corto. `/catalog/status` lista qué falta y a quién.
 
-Para cargar una imagen, pon la URL absoluta en `Product.imageUrl` — por
-`prisma studio`, por SQL, o agregando `imageUrl` al producto en
-[`prisma/seed.ts`](prisma/seed.ts).
+### Imágenes: los placeholders del seed son temporales
+
+El seed trae 6 productos (Meta exige **al menos 5** para habilitar los anuncios
+de catálogo Advantage+) con imágenes de relleno de 800×800 generadas por
+`placehold.co`, rotuladas con el nombre del producto. Sirven para probar el feed
+de punta a punta y para pasar la validación de Meta.
+
+**Sustitúyelas por fotos reales antes de activar anuncios.** Las políticas de
+comercio de Meta exigen que la imagen represente el producto que vendes; un
+catálogo con placeholders puede ser rechazado.
+
+**No uses URLs de Google Imágenes.** Falla por tres motivos independientes:
+las miniaturas de `gstatic.com` rondan los 200 px y Meta exige mínimo 500×500;
+las URLs caducan, así que el feed se rompe solo con el tiempo; y son fotos de
+producto de terceros, lo que es un problema de derechos en un catálogo comercial.
+
+Para cargar una imagen real, pon la URL absoluta en `Product.imageUrl` — por
+`npx prisma studio`, por SQL, o editando [`prisma/seed.ts`](prisma/seed.ts).
+Requisitos: JPEG o PNG, mínimo 500×500 px, máximo 8 MB, servida por HTTPS.
 
 ### Usuario y contraseña del feed (opcional)
 
