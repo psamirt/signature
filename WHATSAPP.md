@@ -192,6 +192,49 @@ del bot. En los logs verás `intent=greeting`.
 | `POST` | `/whatsapp/send` | Envío manual: `{"to":"+51982254431","message":"hola"}` o `{"to":"...","template":"hello_world","language":"en_US"}` |
 | `POST` | `/agent/message` | Prueba el bot sin WhatsApp: `{"message":"cuanto cuesta el oud royale"}` |
 
+## Feed de catálogo para el Administrador de ventas
+
+Meta pide una URL con un archivo CSV/TSV/XML/XLSX. La API lo genera desde tu
+base de datos, así que el catálogo de Meta siempre refleja tus precios y stock
+reales sin exportar nada a mano.
+
+| URL | Para qué |
+|---|---|
+| `https://signature-api-x65k.onrender.com/catalog/feed.csv` | **Esto es lo que pegas** en "Usar una URL u Hojas de cálculo de Google" |
+| `https://signature-api-x65k.onrender.com/catalog/status` | Qué productos entran al feed y qué le falta a los que no |
+| `https://signature-api-x65k.onrender.com/p/<slug>` | Página del producto, destino de `link` en el feed |
+
+Campos que exige Meta, y de dónde sale cada uno:
+
+| Campo | Origen |
+|---|---|
+| `id` | `Inventory.sku` (el identificador estable que Meta prefiere) |
+| `title` | `Product.name`, recortado a 200 caracteres |
+| `description` | `Product.description` |
+| `availability` | `in stock` / `out of stock` según `Inventory.stock` |
+| `condition` | `CATALOG_CONDITION` (por defecto `new`) |
+| `price` | `Product.price` como `289.00 PEN` — número, espacio, código de moneda |
+| `link` | `PUBLIC_BASE_URL/p/<slug>` |
+| `image_link` | `Product.imageUrl` |
+| `brand` | `Product.brand`, o `CATALOG_BRAND` si está vacío |
+
+**Falta subir fotos.** `image_link` es obligatorio (JPEG/PNG, mínimo 500×500 px)
+y ninguno de los productos del seed tiene una. Los productos sin imagen se
+**omiten** del feed a propósito: una fila con un campo obligatorio vacío se
+rechaza entera, y un feed lleno de filas rechazadas es peor que uno corto.
+`/catalog/status` lista exactamente qué falta.
+
+Para cargar una imagen, pon la URL absoluta en `Product.imageUrl` — por
+`prisma studio`, por SQL, o agregando `imageUrl` al producto en
+[`prisma/seed.ts`](prisma/seed.ts).
+
+**Por qué las páginas de producto se sirven desde aquí.** Meta rastrea la URL de
+`link` y compara el precio y la disponibilidad que ve con los del feed; si
+discrepan, rechaza el producto o desactiva la tienda. Al generar la página desde
+la misma consulta que el feed, no pueden discrepar. La página incluye las
+etiquetas `product:price:amount`, `product:price:currency` y
+`product:availability` que el rastreador lee.
+
 ## Decisiones de implementación
 
 - **`rawBody: true` en `main.ts`** — la firma `X-Hub-Signature-256` es un HMAC

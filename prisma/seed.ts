@@ -68,7 +68,20 @@ const pool = new Pool({
 });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
-const PRODUCTS = [
+interface SeedProduct {
+  slug: string;
+  name: string;
+  description: string;
+  price: string;
+  category: string;
+  sku: string;
+  stock: number;
+  /** URL absoluta de la foto. Obligatoria para que el producto entre al feed de Meta. */
+  imageUrl?: string;
+  brand?: string;
+}
+
+const PRODUCTS: SeedProduct[] = [
   {
     slug: 'noir-intense',
     name: 'Noir Intense',
@@ -108,22 +121,24 @@ const PRODUCTS = [
 ];
 
 async function main() {
+  let sinImagen = 0;
+
   for (const item of PRODUCTS) {
+    const data = {
+      name: item.name,
+      description: item.description,
+      price: item.price,
+      category: item.category,
+      // imageUrl queda en null hasta que subas fotos reales: Meta exige
+      // image_link (JPEG/PNG, mínimo 500x500 px) y rechaza la fila sin ella.
+      imageUrl: item.imageUrl ?? null,
+      brand: item.brand ?? null,
+    };
+
     const product = await prisma.product.upsert({
       where: { slug: item.slug },
-      update: {
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        category: item.category,
-      },
-      create: {
-        slug: item.slug,
-        name: item.name,
-        description: item.description,
-        price: item.price,
-        category: item.category,
-      },
+      update: data,
+      create: { slug: item.slug, ...data },
     });
 
     await prisma.inventory.upsert({
@@ -132,7 +147,17 @@ async function main() {
       create: { productId: product.id, sku: item.sku, stock: item.stock },
     });
 
-    console.log(`✔ ${item.name} (stock ${item.stock})`);
+    if (!item.imageUrl) sinImagen++;
+    console.log(
+      `✔ ${item.name} (stock ${item.stock})${item.imageUrl ? '' : '  — sin imagen'}`,
+    );
+  }
+
+  if (sinImagen) {
+    console.log(
+      `\n⚠  ${sinImagen} producto(s) sin imageUrl quedan fuera del feed de Meta.\n` +
+        '   Revisa /catalog/status para ver la lista y qué le falta a cada uno.',
+    );
   }
 }
 

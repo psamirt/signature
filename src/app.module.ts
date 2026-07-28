@@ -8,6 +8,7 @@ import { AgentModule } from './modules/agent/agent.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { ConversationsModule } from './modules/conversations/conversations.module';
 import { LegalModule } from './modules/legal/legal.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -15,6 +16,7 @@ import { PrismaModule } from './prisma/prisma.module';
     PrismaModule,
     HealthModule,
     LegalModule,
+    CatalogModule,
     ProductsModule,
     ConversationsModule,
     WhatsappModule,

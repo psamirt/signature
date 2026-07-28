@@ -54,3 +54,13 @@ services:
         value: Aura Signature
       - key: LEGAL_CONTACT_EMAIL
         sync: false
+
+      # Feed de catálogo para el Administrador de ventas de Meta.
+      - key: PUBLIC_BASE_URL
+        value: https://signature-api-x65k.onrender.com
+      - key: CATALOG_BRAND
+        value: Aura Signature
+      - key: CATALOG_CURRENCY
+        value: PEN
+      - key: CATALOG_CONDITION
+        value: new
