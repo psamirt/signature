@@ -22,4 +22,15 @@ export const catalogConfig = {
 
   /** Condición declarada para todos los productos: new | refurbished | used. */
   condition: process.env.CATALOG_CONDITION ?? 'new',
+
+  /**
+   * Credenciales opcionales para el feed (HTTP Basic). Vacías = feed público.
+   * Si las defines, hay que poner las mismas en el Administrador de ventas.
+   */
+  get feedAuth(): { user: string; password: string } {
+    return {
+      user: process.env.CATALOG_FEED_USER ?? '',
+      password: process.env.CATALOG_FEED_PASSWORD ?? '',
+    };
+  },
 };

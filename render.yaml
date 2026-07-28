@@ -64,3 +64,9 @@ services:
         value: PEN
       - key: CATALOG_CONDITION
         value: new
+      # Opcional: protege el feed con HTTP Basic. Sin definir = feed público.
+      # Si las llenas, pon las mismas credenciales en el Administrador de ventas.
+      - key: CATALOG_FEED_USER
+        sync: false
+      - key: CATALOG_FEED_PASSWORD
+        sync: false

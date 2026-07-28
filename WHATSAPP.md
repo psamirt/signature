@@ -228,6 +228,23 @@ Para cargar una imagen, pon la URL absoluta en `Product.imageUrl` — por
 `prisma studio`, por SQL, o agregando `imageUrl` al producto en
 [`prisma/seed.ts`](prisma/seed.ts).
 
+### Usuario y contraseña del feed (opcional)
+
+Meta ofrece campos de usuario y contraseña junto a la URL del feed. **No son
+necesarios** — el endpoint es público y funciona sin ellos. Sirven si quieres
+que el catálogo, con sus SKUs y niveles de stock, no quede legible para
+cualquiera que descubra la URL.
+
+Para activarlo, define `CATALOG_FEED_USER` y `CATALOG_FEED_PASSWORD` en Render y
+pon **las mismas** credenciales en el Administrador de ventas. Con las variables
+sin definir el feed sigue público, así que activarlo es una decisión explícita y
+no puede romperse por accidente.
+
+La protección cubre **sólo** `/catalog/feed.csv`. Las páginas de producto
+(`/p/:slug`) quedan públicas a propósito: el rastreador de Meta no se autentica
+contra ellas y los clientes las abren desde la ficha del producto, así que
+protegerlas rompería el catálogo.
+
 **Por qué las páginas de producto se sirven desde aquí.** Meta rastrea la URL de
 `link` y compara el precio y la disponibilidad que ve con los del feed; si
 discrepan, rechaza el producto o desactiva la tienda. Al generar la página desde
