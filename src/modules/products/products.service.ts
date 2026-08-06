@@ -52,4 +52,18 @@ export class ProductsService {
       take,
     });
   }
+
+  /**
+   * Todos los productos activos (con o sin stock) para pasárselos como contexto
+   * al agente de IA. Incluye los agotados para que el bot pueda decir "agotado"
+   * en vez de inventar que no existe.
+   */
+  findForAgent(take = 100): Promise<ProductWithInventory[]> {
+    return this.prisma.product.findMany({
+      where: { active: true },
+      include: { inventory: true },
+      orderBy: { name: 'asc' },
+      take,
+    });
+  }
 }
