@@ -4,7 +4,7 @@ import {
   ProductsService,
   type ProductWithInventory,
 } from '../products/products.service';
-import type { Message } from '@prisma/client';
+import type { Message, Prisma } from '@prisma/client';
 
 export interface AgentContext {
   history?: Message[];
@@ -153,7 +153,7 @@ export class AgentService {
     }
 
     const list = products
-      .map((p) => `• *${p.name}* — ${AgentService.formatPrice(p)}`)
+      .map((p) => `• *${p.name}* — ${AgentService.formatSoles(p.price)}`)
       .join('\n');
 
     return {
@@ -172,7 +172,7 @@ export class AgentService {
       name && !name.startsWith('+') ? ` El cliente se llama ${name}.` : '';
 
     return [
-      'Eres el asistente de ventas de "Signature Perfumes", una perfumería en Perú.',
+      'Eres el asistente de ventas de "Aura Signature Perfumes", una perfumería en Perú.',
       `Atiendes por WhatsApp.${greetingName}`,
       '',
       'REGLAS:',
@@ -183,13 +183,18 @@ export class AgentService {
       '- Precios en soles (S/). Horario de atención: todos los días de 9:00 a 21:00.',
       '- Sé breve, cercano y natural, como un buen vendedor por WhatsApp. Puedes usar algún emoji con moderación.',
       `- Si el cliente pide hablar con una persona/asesor, o si es un reclamo o algo que no puedes resolver, añade el marcador ${ESCALATE_MARK} al final de tu respuesta (no lo expliques).`,
+      '- Cada perfume se vende en dos presentaciones: FRASCO lleno y DECANT (una muestra más pequeña, más económica). Si preguntan por un perfume, menciona ambos precios; si preguntan por una presentación en concreto, da solo esa. No todos los perfumes tienen decant: ofrécelo únicamente cuando el catálogo indique un precio de decant.',
+      '- NUNCA reveles cantidades ni números de stock (ni "quedan 3", ni "tengo 7"). Solo di si está *disponible* o *agotado*. Si algo está agotado en frasco pero disponible en decant (o al revés), dilo así, sin números.',
       '',
       'CATÁLOGO ACTUAL:',
       AgentService.formatCatalog(products),
     ].join('\n');
   }
 
-  /** Lista el catálogo en texto plano para inyectarlo en el prompt. */
+  /**
+   * Lista el catálogo en texto plano para inyectarlo en el prompt. Da precios
+   * de frasco y decant y disponibilidad en palabras (nunca cantidades).
+   */
   private static formatCatalog(products: ProductWithInventory[]): string {
     if (!products.length) {
       return '(No hay productos cargados en este momento.)';
@@ -197,16 +202,31 @@ export class AgentService {
 
     return products
       .map((p) => {
-        const stock = p.inventory?.stock ?? 0;
-        const disponibilidad = stock > 0 ? `${stock} en stock` : 'AGOTADO';
+        const av = ProductsService.availability(p);
         const categoria = p.category ? ` | ${p.category}` : '';
+
+        // Precios por presentación, según lo que realmente se venda.
+        const precios = [`frasco ${AgentService.formatSoles(p.price)}`];
+        if (av.sellsDecant && p.priceDecant != null) {
+          precios.push(`decant ${AgentService.formatSoles(p.priceDecant)}`);
+        }
+
+        // Disponibilidad en palabras, diferenciando presentación si hace falta.
+        let estado: string;
+        if (!av.full && !av.decant) estado = 'AGOTADO';
+        else if (av.sellsDecant && av.decant && !av.full)
+          estado = 'disponible solo en decant';
+        else if (av.full && av.sellsDecant && !av.decant)
+          estado = 'disponible solo en frasco';
+        else estado = 'disponible';
+
         const descripcion = p.description ? ` — ${p.description}` : '';
-        return `- ${p.name}${categoria}: ${AgentService.formatPrice(p)} (${disponibilidad})${descripcion}`;
+        return `- ${p.name}${categoria}: ${precios.join(', ')} (${estado})${descripcion}`;
       })
       .join('\n');
   }
 
-  private static formatPrice(product: ProductWithInventory): string {
-    return `S/ ${Number(product.price).toFixed(2)}`;
+  private static formatSoles(amount: Prisma.Decimal | number): string {
+    return `S/ ${Number(amount).toFixed(2)}`;
   }
 }

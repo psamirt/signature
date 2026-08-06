@@ -72,10 +72,18 @@ interface SeedProduct {
   slug: string;
   name: string;
   description: string;
+  /** Precio del frasco lleno. */
   price: string;
+  /** Precio de un decant. Omitir si el perfume no se decanta. */
+  priceDecant?: string;
+  /** Cuántos decants salen de un frasco. Omitir si no se decanta. */
+  decantsPerBottle?: number;
   category: string;
   sku: string;
-  stock: number;
+  /** Frascos sellados en stock. */
+  sealedUnits: number;
+  /** Decants sueltos de frascos ya abiertos. Por defecto 0. */
+  openDecants?: number;
   /** URL absoluta de la foto. Obligatoria para que el producto entre al feed de Meta. */
   imageUrl?: string;
   brand?: string;
@@ -107,9 +115,11 @@ const PRODUCTS: SeedProduct[] = [
     description:
       'Eau de parfum ámbar y madera, 100 ml. Notas de bergamota, cuero y sándalo. Proyección alta y duración de 8 a 10 horas.',
     price: '289.00',
+    priceDecant: '45.00',
+    decantsPerBottle: 9,
     category: 'hombre',
     sku: 'SIG-NOI-100',
-    stock: 12,
+    sealedUnits: 12,
     imageUrl: placeholderImage('Noir Intense'),
   },
   {
@@ -118,9 +128,11 @@ const PRODUCTS: SeedProduct[] = [
     description:
       'Floral blanco con notas de jazmín, pera y almizcle, 50 ml. Fresco y ligero, ideal para uso diario.',
     price: '219.00',
+    priceDecant: '35.00',
+    decantsPerBottle: 5,
     category: 'mujer',
     sku: 'SIG-BLO-050',
-    stock: 7,
+    sealedUnits: 7,
     imageUrl: placeholderImage('Blossom'),
   },
   {
@@ -129,9 +141,11 @@ const PRODUCTS: SeedProduct[] = [
     description:
       'Oud, azafrán y rosa de Damasco, 75 ml. Edición limitada de nuestra línea premium, con notas de fondo de ámbar y vainilla.',
     price: '540.00',
+    priceDecant: '75.00',
+    decantsPerBottle: 7,
     category: 'unisex',
     sku: 'SIG-OUD-075',
-    stock: 3,
+    sealedUnits: 3,
     imageUrl: placeholderImage('Oud Royale'),
   },
   {
@@ -140,9 +154,13 @@ const PRODUCTS: SeedProduct[] = [
     description:
       'Bergamota, limón de Amalfi y vetiver, 100 ml. Cítrico luminoso para el día, con estela discreta.',
     price: '175.00',
+    priceDecant: '30.00',
+    decantsPerBottle: 9,
     category: 'unisex',
     sku: 'SIG-CIT-100',
-    stock: 0,
+    // Frascos agotados pero con decants sueltos: prueba el "solo en decant".
+    sealedUnits: 0,
+    openDecants: 4,
     imageUrl: placeholderImage('Citrus Fresh'),
   },
   {
@@ -151,9 +169,10 @@ const PRODUCTS: SeedProduct[] = [
     description:
       'Vainilla de Madagascar, haba tonka y praliné, 50 ml. Gourmand envolvente, especial para las noches frías.',
     price: '265.00',
+    // Este solo se vende en frasco (sin decant): prueba ese caso.
     category: 'mujer',
     sku: 'SIG-VAN-050',
-    stock: 9,
+    sealedUnits: 9,
     imageUrl: placeholderImage('Vanille Absolue'),
   },
   {
@@ -162,9 +181,11 @@ const PRODUCTS: SeedProduct[] = [
     description:
       'Acuático con notas de salvia, menta y musgo marino, 100 ml. Limpio y versátil, pensado para la oficina.',
     price: '198.00',
+    priceDecant: '32.00',
+    decantsPerBottle: 9,
     category: 'hombre',
     sku: 'SIG-MAR-100',
-    stock: 15,
+    sealedUnits: 15,
     imageUrl: placeholderImage('Marine Bleu'),
   },
 ];
@@ -177,6 +198,8 @@ async function main() {
       name: item.name,
       description: item.description,
       price: item.price,
+      priceDecant: item.priceDecant ?? null,
+      decantsPerBottle: item.decantsPerBottle ?? null,
       category: item.category,
       // imageUrl queda en null hasta que subas fotos reales: Meta exige
       // image_link (JPEG/PNG, mínimo 500x500 px) y rechaza la fila sin ella.
@@ -190,15 +213,20 @@ async function main() {
       create: { slug: item.slug, ...data },
     });
 
+    const stock = {
+      sealedUnits: item.sealedUnits,
+      openDecants: item.openDecants ?? 0,
+    };
+
     await prisma.inventory.upsert({
       where: { productId: product.id },
-      update: { stock: item.stock },
-      create: { productId: product.id, sku: item.sku, stock: item.stock },
+      update: stock,
+      create: { productId: product.id, sku: item.sku, ...stock },
     });
 
     if (!item.imageUrl) sinImagen++;
     console.log(
-      `✔ ${item.name} (stock ${item.stock})${item.imageUrl ? '' : '  — sin imagen'}`,
+      `✔ ${item.name} (frascos ${stock.sealedUnits}, decants sueltos ${stock.openDecants})${item.imageUrl ? '' : '  — sin imagen'}`,
     );
   }
 

@@ -4,6 +4,7 @@ import {
   Header,
   NotFoundException,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CatalogService, type CatalogReadiness } from './catalog.service';
@@ -35,11 +36,20 @@ export class CatalogController {
     return this.catalogService.getReadiness();
   }
 
-  /** Página de producto: el destino de `link` en el feed. */
+  /**
+   * Página de producto: el destino de `link` en el feed. Con ?v=decant muestra
+   * el precio y la disponibilidad del decant en vez de los del frasco.
+   */
   @Get('p/:slug')
   @Header('Content-Type', 'text/html; charset=utf-8')
-  async productPage(@Param('slug') slug: string): Promise<string> {
-    const html = await this.catalogService.productPageHtml(slug);
+  async productPage(
+    @Param('slug') slug: string,
+    @Query('v') variant?: string,
+  ): Promise<string> {
+    const html = await this.catalogService.productPageHtml(
+      slug,
+      variant === 'decant' ? 'decant' : 'full',
+    );
     if (!html) throw new NotFoundException('Producto no encontrado');
     return html;
   }
