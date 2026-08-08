@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { Prisma } from '@prisma/client';
+import type { CreateProductDto } from './dto/create-product.dto';
+import type { UpdateProductDto } from './dto/update-product.dto';
 
 export type ProductWithInventory = Prisma.ProductGetPayload<{
   include: { inventory: true };
@@ -144,6 +146,60 @@ export class ProductsService {
         where: { productId },
         data: { sealedUnits, openDecants: openDecants - qty },
       });
+    });
+  }
+
+  /** Crea un producto junto con su inventario inicial, en una transacción. */
+  create(dto: CreateProductDto): Promise<ProductWithInventory> {
+    const { inventory, ...productData } = dto;
+
+    return this.prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({ data: productData });
+      await tx.inventory.create({
+        data: {
+          productId: product.id,
+          sku: inventory.sku,
+          sealedUnits: inventory.sealedUnits ?? 0,
+          openDecants: inventory.openDecants ?? 0,
+        },
+      });
+      return tx.product.findUniqueOrThrow({
+        where: { id: product.id },
+        include: { inventory: true },
+      });
+    });
+  }
+
+  /**
+   * Edita un producto y, si viene `inventory`, ajusta el stock en la misma
+   * transacción (permite editar catálogo y stock desde un solo formulario).
+   */
+  update(id: string, dto: UpdateProductDto): Promise<ProductWithInventory> {
+    const { inventory, ...productData } = dto;
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.product.update({ where: { id }, data: productData });
+
+      if (inventory) {
+        await tx.inventory.update({ where: { productId: id }, data: inventory });
+      }
+
+      return tx.product.findUniqueOrThrow({
+        where: { id },
+        include: { inventory: true },
+      });
+    });
+  }
+
+  /**
+   * Elimina un producto y su inventario. La FK inventory→product es
+   * ON DELETE RESTRICT, así que hay que borrar el inventario primero.
+   * Para ocultar un producto sin perder histórico, usar `update(id, { active: false })`.
+   */
+  async remove(id: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.inventory.deleteMany({ where: { productId: id } });
+      await tx.product.delete({ where: { id } });
     });
   }
 
